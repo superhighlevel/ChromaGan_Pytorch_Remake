@@ -10,6 +10,7 @@ def main():
     
     if args.mode == 1:
         Train().train()
+        
     elif args.mode == 2:
         TestCase().test()
     else:

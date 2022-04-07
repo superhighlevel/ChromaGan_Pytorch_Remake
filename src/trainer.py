@@ -33,9 +33,16 @@ def sample_images(test_data, colorizationModel, epoch):
         save_image(colored, images_path)
 
 
-def test(test_data):
-    #     print('test')
-    pass
+def test():
+    path = config.MODEL_PATH + 'color.pt'
+    test_dataloader = ColorizeDataLoader(config.TEST_PATH)
+    test_dataloader = DataLoader(
+        test_dataloader, batch_size=config.BATCH_SIZE, 
+        shuffle=True, num_workers=2)
+    colorizationModel = Colorization(input_size=224, in_channels=1).to(config.DEVICE)
+    colorizationModel.load_state_dict(torch.load(path))
+    epoch = 1
+    sample_images(test_dataloader, colorizationModel, epoch)
 
 
 def model(train_data, test_data, epochs, version=0.0):
