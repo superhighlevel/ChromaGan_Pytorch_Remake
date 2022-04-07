@@ -44,7 +44,13 @@ class Colorization(nn.Module):
         super(Colorization, self).__init__()
         self.input_size = input_size
         self.in_channels = in_channels
+
+        self.init_cnn = nn.Sequential(
+            nn.Conv2d(self.in_channels, 3, kernel_size=3, stride=1, padding=1, bias=False),
+        )
+
         vgg = models.vgg16(pretrained=True)
+
         self.vgg = nn.Sequential(*list(vgg.features.children())[:-8])
 
 
@@ -79,6 +85,7 @@ class Colorization(nn.Module):
         self.output_4 = ConvBlock(64, 64, 3, 1, 1, use_batchnorm=False)
 
         self.output_5 = ConvBlock(64, 32, 3, 1, 1, use_batchnorm=False)
+        
         self.output_6 = nn.Sequential(
             nn.Conv2d(32, 2, 3, 1, 1),
             nn.Sigmoid()
@@ -88,18 +95,24 @@ class Colorization(nn.Module):
 
 
     def forward(self, x):
+        if x.shape[1] < 3:
+            print(x.shape)
+            x = self.init_cnn(x)
+        print(x.shape)
         x_model = self.vgg(x)
         # Global features
         global_features = self.global_features_1(x_model)
         global_features = self.global_features_2(global_features)
         global_features = self.global_features_3(global_features)
         global_features = self.global_features_4(global_features)
+        print('global_features', global_features.shape)
 
         # Global features 2
         global_features2 = self.flatten(global_features)
         global_features2 = self.fully_connected_1(global_features2)
         global_features2 = global_features2.repeat(28, 28, 1, 1)
         global_features2 = global_features2.permute(2, 3, 0, 1)
+        print('global_features2', global_features2.shape)
         global_featuresClass = self.flatten(global_features)
         global_featuresClass = self.fully_connected_2(global_featuresClass)
 
@@ -107,21 +120,26 @@ class Colorization(nn.Module):
         midlevel_features  = self.midlevel_features_1(x_model)
         midlevel_features = self.midlevel_features_2(midlevel_features)
 
+
         # fusion of (VGG16 + Midlevel) + (VGG16 + Global)
         fusion = torch.cat((midlevel_features, global_features2), dim=1)
+        print('fusion', fusion.shape)
 
         # Output
         output = self.output_1(fusion)
         output = self.output_2(output)
         output = self.upsample(output)
+        print('output 1', output.shape)
 
         output = self.output_3(output)
         output = self.output_4(output)
         output = self.upsample(output)
+        print('output 2', output.shape)
 
         output = self.output_5(output)
         output = self.output_6(output)
         output = self.upsample(output)
+        print('output generator', output.shape)
 
         return output, global_featuresClass
 
@@ -129,10 +147,10 @@ def test_colorization():
     print('test_colorization')
     x = torch.randn((8, 1, 224, 224))
     # stack of copy of x
-    x = torch.cat([x, x, x], dim=1)
+    # x = torch.cat([x, x, x], dim=1)
     # to device
     x = x.to('cuda')
-    colorization = Colorization(input_size=224, in_channels=3).to('cuda')
+    colorization = Colorization(input_size=224, in_channels=1).to('cuda')
     pred = colorization(x)
     print(pred[0].shape)
     print(pred[1].shape)

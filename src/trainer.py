@@ -1,7 +1,8 @@
 import torch
 from src.discriminator import Discriminator
 from src.colorization import Colorization
-from configs.config_aa import config
+# from configs.config_aa import config
+import configs.config as config
 from utils.utils import deprocess, reconstruct, reconstruct_no
 from torch.utils.data import DataLoader
 from src.ColorizeDataloader import ColorizeDataLoader
@@ -12,7 +13,7 @@ import cv2
 from tqdm import tqdm
 import torchvision.models as models
 from utils.utils import *
-from torch.optim import adam
+from torch.optim import Adam
 import json
 
 def sample_images(self, test_data, epoch):
@@ -60,7 +61,7 @@ def model(train_data, test_data, epochs, version = 0.0):
 
     # Load the discriminator model and the colorization model   
     discriminator = Discriminator(input_size=224, in_channels=3).to(config.DEVICE)
-    colorizationModel = Colorization(input_size=224, in_channels=3).to(config.DEVICE)
+    colorizationModel = Colorization(input_size=224, in_channels=1).to(config.DEVICE)
     VGG_modelF = models.vgg16(pretrained=True)
 
     # Real, Fake and Dummy for Discriminator
@@ -68,12 +69,13 @@ def model(train_data, test_data, epochs, version = 0.0):
     negative_real = -positive_real
     dummy_y = torch.zeros(size = (config.BATCH_SIZE, 1))
 
-    optimizer_g = adam(
+
+    optimizer_g = Adam(
         colorizationModel.parameters(), lr=config.LR, 
         betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
-    optimizer_d = adam(
+    optimizer_d = Adam(
         discriminator.parameters(), lr=config.LR, 
-        beta=(0.9, 0.999), eps=1e-08, weight_decay=0)
+        betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
 
     color_scaler = torch.cuda.amp.GradScaler()
     disc_scaler = torch.cuda.amp.GradScaler()
@@ -89,16 +91,26 @@ def model(train_data, test_data, epochs, version = 0.0):
         print(f'EPORCH {epoch} / {epochs}')
         losses['Epoch'].append(epoch)
         print('-'*30)
-        for idx, (trainL, trainAB, _, _, _) in enumerate(tqdm(train_dataloader)):
-            l_3 = np.title(trainL, [1, 1, 1, 3])
+        for idx, (trainL, trainAB, _, _) in enumerate(tqdm(train_dataloader)):
+            print(trainL.shape)
+            l_3 = np.tile(trainL, [1, 3, 1, 1])
+            l_3 = torch.from_numpy(l_3)
 
             # Train the Generator
-            predictVGG = VGG_modelF.predict(l_3)
+            print(l_3.shape)
+            predictVGG = VGG_modelF(l_3)
             optimizer_g.zero_grad()
+
+            print(predictVGG.shape)
+
+            print('trainL', trainL.shape)
+
+            l_3 = l_3.to(config.DEVICE)
             
-            predAB, pred_class = colorizationModel(trainL)
+            predAB, pred_class = colorizationModel(l_3)
             predAB = predAB.detach()
             pred_class = pred_class.detach()
+            print('predAB', predAB.shape)
             disc_pred = discriminator(predAB)
 
             # Loss genrenator 
@@ -125,10 +137,12 @@ def model(train_data, test_data, epochs, version = 0.0):
 
             # disc prediction
             pred_lab = torch.cat((trainL, predAB), dim=1)
+            print('pred_lab', pred_lab.shape)
             disc_pred = discriminator(pred_lab.detach())
 
             # disc true
             pred_true = torch.cat([trainL, trainAB], dim=1)
+            print('pred_true', pred_true.shape)
             disc_true = discriminator(pred_true)
             
             # disc average

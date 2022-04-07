@@ -19,6 +19,9 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.input_size = input_size
         self.in_channels = in_channels
+        self.init_cnn = nn.Sequential(
+            nn.Conv2d(2, 3, kernel_size=3, stride=1, padding=1, bias=False),
+        )
         self.conv_1 = nn.Sequential(
             nn.Conv2d(self.in_channels, 64, 4, 2, 1), #(112, 112, 64)
             nn.LeakyReLU(0.2)
@@ -29,6 +32,10 @@ class Discriminator(nn.Module):
         self.conv_5 = ConvBlock(512, 1, 3, 1, 1) # (28, 28, 1)
 
     def forward(self, x):
+        print(x.shape)
+        x = self.init_cnn(x)
+        print(x.shape)
+        print('hi')
         x = self.conv_1(x)
         x = self.conv_2(x)
         x = self.conv_3(x)
