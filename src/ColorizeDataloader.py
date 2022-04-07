@@ -1,16 +1,15 @@
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
-from PIL import Image, ImageOps
 import glob
-import torch
-from torch.utils.data import Dataset, DataLoader
-from torch.nn.functional import normalize
-from tqdm import tqdm
+
 import configs.config as config
-import os
-import configs.config_aa as config_aa
 import cv2
 import numpy as np
+import torch
+import torchvision.transforms as transforms
+from PIL import Image, ImageOps
+from torch.nn.functional import normalize
+from torch.utils.data import DataLoader, Dataset
+
+
 class ColorizeDataLoader(Dataset):
     def __init__(self, color_path, img_size = 224):
         self.color_path = color_path

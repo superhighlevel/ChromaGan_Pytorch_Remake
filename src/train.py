@@ -8,3 +8,8 @@ class Train():
     def train(self):
         self.trainer.train()
         print('Training done!')
+
+# Create output folder if not exist
+if not os.path.exists(config.OUTPUT_PATH):
+    os.makedirs(config.OUTPUT_PATH)
+    
