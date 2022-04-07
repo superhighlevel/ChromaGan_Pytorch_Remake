@@ -1,5 +1,6 @@
 import os
 from .trainer import Trainer
+import configs.config as config
 
 class Train():
     def __init__(self):
