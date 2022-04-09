@@ -3,6 +3,9 @@ from src.testcase import TestCase
 import argparse
 
 def main():
+    """
+    Main function for training and testing the colorization model.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--mode',type=int, default=1, help='1: train, 2: test')
     parser.add_argument('-c', '--config', type=str, default='configs/config.yaml', help='config file')

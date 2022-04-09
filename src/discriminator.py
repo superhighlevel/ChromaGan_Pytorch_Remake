@@ -2,6 +2,14 @@ import torch
 import torch.nn as nn
 
 class ConvBlock(nn.Module):
+    """
+    Convolutional block for the Colorization model
+    :param in_channels: number of input channels
+    :param out_channels: number of output channels
+    :param kernel_size: kernel size
+    :param stride: stride
+    :param padding: padding
+    """
     def __init__(
         self, in_channels, out_channels, kernel_size, stride, padding):
         super(ConvBlock, self).__init__()
@@ -15,6 +23,11 @@ class ConvBlock(nn.Module):
         return self.conv(x)
 
 class Discriminator(nn.Module):
+    """
+    Discriminator for the Colorization model
+    :param input_size: size of the input image
+    :param in_channels: number of input channels
+    """
     def __init__(self, input_size, in_channels=3):
         super(Discriminator, self).__init__()
         self.input_size = input_size
@@ -38,6 +51,9 @@ class Discriminator(nn.Module):
 
 
 def test_discriminator():
+    """
+    Test the discriminator on a single image
+    """
     print('test_discriminator')
     x = torch.randn((1, 3, 224, 224)).to('cuda')
     discriminator = Discriminator(input_size=224).to('cuda')

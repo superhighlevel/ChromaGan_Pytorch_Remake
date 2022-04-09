@@ -13,36 +13,11 @@ from torch.utils.data import DataLoader
 from torchvision.utils import save_image
 from tqdm import tqdm
 from utils.utils import *
-from utils.utils import deprocess, reconstruct, reconstruct_no
+from utils.utils import deprocess, reconstruct
 
 from src.colorization import Colorization
 from src.ColorizeDataloader import ColorizeDataLoader
 from src.discriminator import Discriminator
-
-
-def sample_images(test_data, colorizationModel, epoch):
-    print('sampling images')
-    for idx, (gray, _, _, _) in enumerate(tqdm(test_data)):
-        l_3 = torch.cat([gray, gray, gray], dim=1).to(config.DEVICE)
-        colored, _ = colorizationModel(l_3)
-        gray = gray.to(config.DEVICE)
-        colored = torch.cat([gray, colored], dim=1)
-        if not os.path.exists(config.OUTPUT_PATH):
-            os.makedirs(config.OUTPUT_PATH)
-        images_path = config.OUTPUT_PATH + str(idx) + '.png'
-        save_image(colored, images_path)
-
-
-def test():
-    path = config.MODEL_PATH + 'color.pt'
-    test_dataloader = ColorizeDataLoader(config.TEST_PATH)
-    test_dataloader = DataLoader(
-        test_dataloader, batch_size=config.BATCH_SIZE, 
-        shuffle=True, num_workers=2)
-    colorizationModel = Colorization(input_size=224, in_channels=1).to(config.DEVICE)
-    colorizationModel.load_state_dict(torch.load(path))
-    epoch = 1
-    sample_images(test_dataloader, colorizationModel, epoch)
 
 
 def model(train_data, test_data, epochs, version=0.0):
@@ -66,7 +41,7 @@ def model(train_data, test_data, epochs, version=0.0):
     # Load the discriminator model and the colorization model   
     discriminator = Discriminator(input_size=224).to(config.DEVICE)
     discriminator.apply(initialize_weights)
-    colorization_model = Colorization(input_size=224, in_channels=1).to(config.DEVICE)
+    colorization_model = Colorization(input_size=224).to(config.DEVICE)
     colorization_model.apply(initialize_weights)
     vgg_model_f = models.vgg16(pretrained=True).to(config.DEVICE)
 
@@ -102,24 +77,24 @@ def model(train_data, test_data, epochs, version=0.0):
         print('-' * 30)
         for idx, (trainL, trainAB, _, _) in enumerate(tqdm(train_dataloader)):
             l_3 = torch.cat([trainL, trainL, trainL], dim=1).to(config.DEVICE)
-            predict_vgg = vgg_model_f(l_3)
-
+        
             # Train the Generator
-
             l_3 = l_3.to(config.DEVICE)
-
-            #             optimizer_g.zero_grad()
+            with torch.no_grad():
+                predict_vgg = vgg_model_f(l_3)
+                colored, _ = colorization_model(l_3)
             predAB, pred_class = colorization_model(l_3)
             predAB = predAB.to(config.DEVICE)
             trainAB = trainAB.to(config.DEVICE)
             trainL = trainL.to(config.DEVICE)
             pred_lab = torch.cat([trainL, predAB], dim=1).to(config.DEVICE)
-            disc_pred = discriminator(pred_lab)
+            with torch.no_grad():
+                disc_pred = discriminator(pred_lab)
 
             pred_class = pred_class.to(config.DEVICE)
             predict_vgg = predict_vgg.to(config.DEVICE)
 
-            # Loss genrenator 
+            # Loss generator
             mse_loss_gen = torch.nn.functional.mse_loss(predAB, trainAB)
             kld_loss_gen = torch.nn.functional.kl_div(pred_class, predict_vgg) * 0.003
             mal_gen = disc_pred * positive_real
@@ -141,24 +116,25 @@ def model(train_data, test_data, epochs, version=0.0):
             # Train the Discriminator
 
             # disc prediction
-            disc_pred = discriminator(pred_lab)
-            # disc true
             pred_true = torch.cat([trainL, trainAB], dim=1).to(config.DEVICE)
-            disc_true = discriminator(pred_true)
-            # disc average
+
+            with torch.no_grad():
+                disc_pred = discriminator(pred_lab)
+                disc_true = discriminator(pred_true)
+            # Loss Discriminator
             averaged_sample = RandomWeightedAverage([trainAB, predAB])
             average_sample = torch.cat([trainL, averaged_sample], dim=1)
             average_sample = average_sample.to(config.DEVICE)
             average_sample = torch.autograd.Variable(average_sample, requires_grad=True)
             disc_average = discriminator(average_sample)
+
             mal_F = disc_pred * negative_real
             mal_F = torch.autograd.Variable(mal_F, requires_grad=True)
             mal_R = disc_true * positive_real
             mal_R = torch.autograd.Variable(mal_R, requires_grad=True)
+
             Loss_D_Fake = wasserstein_loss(mal_F) * -1.0
             Loss_D_Real = wasserstein_loss(mal_R)
-
-            #           print(disc_average.shape, average_sample.shape)
             Loss_D_avg = gradient_penalty_loss(
                 disc_average,
                 average_sample,
@@ -178,7 +154,7 @@ def model(train_data, test_data, epochs, version=0.0):
 
             # Save losses and images
             if idx % 300 == 0:
-                #                 sample_images(test_dataloader, colorization_model, epoch)
+                # sample_images(test_dataloader, colorization_model, epoch)
                 print(f'{idx} / {len(train_dataloader)}')
                 print(f'Loss_D_Fake: {Loss_D_Fake.item()}')
                 print(f'Loss_D_Real: {Loss_D_Real.item()}')
@@ -189,13 +165,16 @@ def model(train_data, test_data, epochs, version=0.0):
                 print(f'Loss_kld_gen: {kld_loss_gen.item()}')
                 print(f'Loss_wl_gen: {wl_loss_gen.item()}')
                 print('-' * 30)
-
             # sample images after each epoch
+            if idx % 1000 == 0:
+                colorization_model.eval()
+                sample_images(test_dataloader, colorization_model, epoch)
+                colorization_model.train()
     # Save losses
     with open(os.path.join(save_models_path, 'losses.json'), 'w') as f:
         json.dump(losses, f)
-    torch.save(discriminator.state_dict(), config.MODEL_PATH + 'discrip.pt')
-    torch.save(colorization_model.state_dict(), config.MODEL_PATH + 'color.pt')
+    torch.save(discriminator.state_dict(), config.MODEL_PATH + 'discriminator.pt')
+    torch.save(colorization_model.state_dict(), config.MODEL_PATH + 'colorization.pt')
 
 
 def train():
@@ -216,11 +195,54 @@ def train():
     print('-' * 30)
 
     test(test_path)
-
-    print('-' * 30)
     print('Testing done!')
-    print('-' * 30)
 
+    print('-' * 30)
+    print('All done!')
+
+
+def sample_images(test_data, colorizationModel):
+    """
+    Sample images after training
+        :param test_data: test data
+        :param colorizationModel: colorization model
+    """
+    print('Sampling images')
+    for idx, (gray, ori_ab, origin_images, _) in enumerate(tqdm(test_data)):
+        l_3 = torch.cat([gray, gray, gray], dim=1).to(config.DEVICE)
+        # torch required no grad
+        with torch.no_grad():
+            colored, _ = colorizationModel(l_3)
+        gray = gray.detach().cpu().numpy()
+        ori_ab = ori_ab.detach().cpu().numpy()
+        colored = colored.detach().cpu().numpy()
+        for i in range(config.BATCH_SIZE):
+            print(deprocess(gray).shape)
+            print('oriab', ori_ab[i].shape)
+            print(ori_ab)
+            print('colored', colored[i].shape)
+            print(colored)
+            original_result_red = reconstruct(deprocess(gray)[i], deprocess(ori_ab)[i])
+            print('originalResult_red shape: ', original_result_red.shape)
+            # imsave originalResult_red
+            cv2.imwrite(config.OUTPUT_PATH + str(idx) + '_' + str(i) + '.png', original_result_red)
+        break
+    print('Sampling images done')
+
+
+def test():
+    """
+    Test the model
+    """
+    path = config.MODEL_PATH + 'color.pt'
+    test_dataloader = ColorizeDataLoader(config.TEST_PATH)
+    test_dataloader = DataLoader(
+        test_dataloader, batch_size=config.BATCH_SIZE, 
+        shuffle=True, num_workers=2)
+    colorizationModel = Colorization(input_size=224).to(config.DEVICE)
+    colorizationModel.load_state_dict(torch.load(path))
+    colorizationModel.eval()
+    sample_images(test_dataloader, colorizationModel)
 
 def test_case_1(device):
     print('test case 1 start')

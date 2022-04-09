@@ -15,7 +15,7 @@ TRAIN_PATH = 'datasets/celeb_dataset/test/color'
 TEST_PATH = 'datasets/celeb_dataset/test/color'
 
 BATCH_SIZE = 16
-TEST_BATCH_SIZE = 16
+# TEST_BATCH_SIZE = 16
 
 LR = 0.0002
 
