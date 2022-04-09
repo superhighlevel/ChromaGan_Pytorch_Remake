@@ -17,7 +17,7 @@ WIP - The code is not finished yet.
   - --config: path to the config file
   - --mode: 
     - 1: Train
-    - 2: Testing the code is working
+    - 2: Test, coloring the sample images
 
 ## References
 - [ChromaGAN](https://github.com/pvitoria/ChromaGAN)
