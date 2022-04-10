@@ -57,9 +57,7 @@ class ColorizeDataLoader(Dataset):
         # Read the image
         img_color_path = self.data_color[idx]
         img_color = cv2.imread(img_color_path)
-        print(img_color.shape)
         # Convert ting the image to the required size and convert to lab color space
-        print(self.img_size)
         lab_img = cv2.cvtColor(
             cv2.resize(img_color, (self.img_size, self.img_size)),
             cv2.COLOR_BGR2Lab)
