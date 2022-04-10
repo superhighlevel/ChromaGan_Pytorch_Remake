@@ -12,7 +12,7 @@ class ConvBlock(nn.Module):
     """
     def __init__(
         self, in_channels, out_channels, kernel_size, stride, padding):
-        super(ConvBlock, self).__init__()
+        super().__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding),
             nn.BatchNorm2d(out_channels),
@@ -29,7 +29,7 @@ class Discriminator(nn.Module):
     :param in_channels: number of input channels
     """
     def __init__(self, input_size, in_channels=3):
-        super(Discriminator, self).__init__()
+        super().__init__()
         self.input_size = input_size
         self.in_channels = in_channels
         self.conv_1 = nn.Sequential(

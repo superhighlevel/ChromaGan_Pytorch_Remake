@@ -168,7 +168,7 @@ def model(train_data, test_data, epochs, version=0.0):
             # sample images after each epoch
             if idx % 1000 == 0:
                 colorization_model.eval()
-                sample_images(test_dataloader, colorization_model, epoch)
+                sample_images(test_dataloader, colorization_model)
                 colorization_model.train()
     # Save losses
     with open(os.path.join(save_models_path, 'losses.json'), 'w') as f:
@@ -217,13 +217,13 @@ def sample_images(test_data, colorizationModel):
         ori_ab = ori_ab.detach().cpu().numpy()
         colored = colored.detach().cpu().numpy()
         for i in range(config.BATCH_SIZE):
-            print(deprocess(gray).shape)
-            print('oriab', ori_ab[i].shape)
-            print(ori_ab)
-            print('colored', colored[i].shape)
-            print(colored)
-            original_result_red = reconstruct(deprocess(gray)[i], deprocess(ori_ab)[i])
-            print('originalResult_red shape: ', original_result_red.shape)
+            # print(deprocess(gray).shape)
+            # print('oriab', ori_ab[i].shape)
+            # print(ori_ab)
+            # print('colored', colored[i].shape)
+            # print(colored)
+            original_result_red = reconstruct(deprocess(gray)[i], deprocess(colored)[i])
+            # print('originalResult_red shape: ', original_result_red.shape)
             # imsave originalResult_red
             cv2.imwrite(config.OUTPUT_PATH + str(idx) + '_' + str(i) + '.png', original_result_red)
         break
