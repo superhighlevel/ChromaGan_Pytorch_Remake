@@ -28,7 +28,7 @@ class ConvBlock(nn.Module):
     def __init__(
             self, in_channels, out_channels,
             kernel_size, stride, padding):
-        super(ConvBlock).__init__()
+        super().__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(
                 in_channels, out_channels, kernel_size,
@@ -49,7 +49,7 @@ class SimpleConvBlock(nn.Module):
     :param padding: padding
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
-        super(SimpleConvBlock).__init__()
+        super().__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(
                 in_channels, out_channels, kernel_size,
@@ -69,7 +69,7 @@ class Colorization(nn.Module):
     :param output_image: output image
     """
     def __init__(self, input_size = 224):
-        super(Colorization, self).__init__()
+        super().__init__()
         # raise error if input size is not 224
         if input_size != 224:
             raise ValueError("Input size must be 224")
