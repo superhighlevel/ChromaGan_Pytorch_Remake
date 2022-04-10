@@ -11,8 +11,8 @@ MODEL_DIR = 'models/'
 OUTPUT_PATH = 'Output/'
 
 # TRAIN_PATH = '../input/celeb-dataset/celeb_dataset/train/color'
-TRAIN_PATH = 'datasets/celeb_dataset/test/color'
-TEST_PATH = 'datasets/celeb_dataset/test/color'
+TRAIN_PATH = 'datasets/celeb_dataset/test/color/color_images'
+TEST_PATH = 'datasets/celeb_dataset/test/color/color_images'
 
 BATCH_SIZE = 16
 # TEST_BATCH_SIZE = 16
