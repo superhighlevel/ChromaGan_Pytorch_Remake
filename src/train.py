@@ -1,5 +1,5 @@
 import os
-from trainer import Trainer
+from src.trainer import Trainer
 import configs.config as config
 
 

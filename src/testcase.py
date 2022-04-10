@@ -1,4 +1,4 @@
-from trainer import Tester
+from src.trainer import Tester
 
 
 class TestCase:

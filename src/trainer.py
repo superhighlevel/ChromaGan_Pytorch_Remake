@@ -9,7 +9,6 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils.utils import *
-from utils.utils import deprocess, reconstruct
 
 from src.colorization import Colorization
 from src.ColorizeDataloader import ColorizeDataLoader
@@ -222,7 +221,7 @@ def sample_images(test_data, colorizationModel):
         for i in range(config.BATCH_SIZE):
             original_result_red = reconstruct(deprocess(gray)[i], deprocess(colored)[i])
             print('originalResult_red shape: ', original_result_red.shape)
-            cv2.imwrite(config.OUTPUT_PATH + str(i) + '' + '.png', original_result_red)
+            cv2.imwrite(config.OUTPUT_PATH + str(idx) + '_' + str(i) + '.png', original_result_red)
     print('Sampling images done')
 
 

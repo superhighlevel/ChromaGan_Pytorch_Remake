@@ -7,18 +7,9 @@ import numpy as np
 import torch
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
+from tqdm import tqdm
+from torch.utils.data import DataLoader
 
-
-def transform(img):
-    """
-    Transform function for the image. It converts the image to tensor
-    :param img: image
-    :return: tensor image
-    """
-    trans = transforms.Compose([
-        transforms.ToTensor(),
-    ])
-    return trans(img)
 
 
 class ColorizeDataLoader(Dataset):
@@ -59,6 +50,28 @@ class ColorizeDataLoader(Dataset):
 
     def __len__(self):
         return len(self.data_color)
+    
+    def __getitem__(self, idx):
+        # Read the image
+        grey_img, color_img, original, lab_img_ori = self.read_img(idx)
+        # Transform the image to tensor
+        grey_img = self.transform(grey_img)
+        color_img = self.transform(color_img)
+        # print(grey_img.shape)
+        # print(color_img.shape)
+        # original and lab_img_ori are not transformed since they are not used in the model
+        return grey_img, color_img, original, lab_img_ori
+    
+    def transform(self, img):
+        """
+        Transform function for the image. It converts the image to tensor
+        :param img: image
+        :return: tensor image
+        """
+        trans = transforms.Compose([
+            transforms.ToTensor(),
+        ])
+        return trans(img)
 
     def read_img(self, idx):
         """
@@ -82,15 +95,6 @@ class ColorizeDataLoader(Dataset):
             img_color, 
             lab_img_ori)
 
-    def __getitem__(self, idx):
-        # Read the image
-        grey_img, color_img, original, lab_img_ori = self.read_img(idx)
-        # Transform the image to tensor
-        grey_img = transform(grey_img)
-        color_img = transform(color_img)
-        # original and lab_img_ori are not transformed since they are not used in the model
-        return grey_img, color_img, original, lab_img_ori
-
 
 def testing_colorize_dataloader():
     """
@@ -107,7 +111,21 @@ def testing_colorize_dataloader():
     print('lab_img_ori: ', lab_img_ori.shape)
     cv2.waitKey(0)
 
+def checking_data_loader():
+    """
+    Checking the dataloader
+    """
+    # Create the dataloader
+    print('Checking the dataloader')
+    color_loader = ColorizeDataLoader(config.TRAIN_PATH)
+    test_dataloader = DataLoader(
+        color_loader, batch_size=config.BATCH_SIZE,
+        shuffle=True, num_workers=2, drop_last=True)
+    for idx, (grey_img, color_img, original, lab_img_ori) in enumerate(tqdm(test_dataloader)):
+        continue
+    print('Everything is fine')
 
 if __name__ == '__main__':
-    testing_colorize_dataloader()
+    # testing_colorize_dataloader()
+    checking_data_loader()
         
