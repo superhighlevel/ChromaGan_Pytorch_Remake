@@ -32,16 +32,16 @@ def reconstruct(batchX, predictedY):
     return result
 
 
-def wasserstein_loss(input):
+def wasserstein_loss(inputs):
     """
     Wasserstein loss: https://arxiv.org/abs/1701.07875
-    :param input: input to the loss function
-    :return: Wasserstein loss
+    :param inputs: input to the loss function
+    :return Wasserstein loss
     """
-    return torch.mean(input)
+    return torch.mean(inputs)
 
 
-def RandomWeightedAverage(inputs):
+def random_weighted_average(inputs):
     """
     Computes a weighted average of the inputs 
     :param inputs: list of input tensors

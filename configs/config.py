@@ -2,7 +2,7 @@ import torch
 
 GRADIENT_PENALTY_WEIGHT = 10
 
-EPORCHS = 1
+EPOCHS = 1
 
 MODEL_PATH = 'models/'
 MODEL_NAME = 'ChromaGAN'
@@ -14,7 +14,7 @@ OUTPUT_PATH = 'Output/'
 TRAIN_PATH = 'datasets/celeb_dataset/test/color/color_images'
 TEST_PATH = 'datasets/celeb_dataset/test/color/color_images'
 
-BATCH_SIZE = 16
+BATCH_SIZE = 1
 # TEST_BATCH_SIZE = 16
 
 LR = 0.0002

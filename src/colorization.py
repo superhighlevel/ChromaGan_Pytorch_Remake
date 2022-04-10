@@ -25,6 +25,7 @@ class ConvBlock(nn.Module):
     :param stride: stride
     :param padding: padding
     """
+
     def __init__(
             self, in_channels, out_channels,
             kernel_size, stride, padding):
@@ -36,8 +37,10 @@ class ConvBlock(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(0.2)
         )
+
     def forward(self, x):
         return self.conv(x)
+
 
 class SimpleConvBlock(nn.Module):
     """
@@ -48,6 +51,7 @@ class SimpleConvBlock(nn.Module):
     :param stride: stride
     :param padding: padding
     """
+
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
         super().__init__()
         self.conv = nn.Sequential(
@@ -65,10 +69,11 @@ class Colorization(nn.Module):
     """
     The Colorization model that takes an input image and outputs a colorized image.
     The model is based on the VGG16 network.
-    :param input_image: input image
-    :param output_image: output image
+    :param: input_image: input image
+    :param: output_image: output image
     """
-    def __init__(self, input_size = 224):
+
+    def __init__(self, input_size=224):
         super().__init__()
         # raise error if input size is not 224
         if input_size != 224:
@@ -76,7 +81,7 @@ class Colorization(nn.Module):
 
         # Load VGG16 model pretrained on ImageNet dataset
         vgg = models.vgg16(pretrained=True)
-        
+
         #  Freeze all the parameters of the VGG16 model
         self.vgg = nn.Sequential(*list(vgg.features.children())[:-8])
 
@@ -90,21 +95,21 @@ class Colorization(nn.Module):
         self.flatten = nn.Flatten()
 
         self.fully_connected_1 = nn.Sequential(
-            nn.Linear(512*7*7, 1024),
+            nn.Linear(512 * 7 * 7, 1024),
             nn.Linear(1024, 512),
             nn.Linear(512, 256),
         )
 
         self.fully_connected_2 = nn.Sequential(
-            nn.Linear(512*7*7, 4096),
+            nn.Linear(512 * 7 * 7, 4096),
             nn.Linear(4096, 4096),
             nn.Linear(4096, 1000),
             nn.Softmax()
         )
 
         # Mid-level Features
-        self.midlevel_features_1 = ConvBlock(512, 512, 3, 1, 1)
-        self.midlevel_features_2 = ConvBlock(512, 256, 3, 1, 1)
+        self.mid_level_features_1 = ConvBlock(512, 512, 3, 1, 1)
+        self.mid_level_features_2 = ConvBlock(512, 256, 3, 1, 1)
 
         # Output layers
         self.output_1 = SimpleConvBlock(512, 256, 1, 1, 0)
@@ -117,7 +122,7 @@ class Colorization(nn.Module):
             nn.Sigmoid()
         )
 
-        self.upsample = nn.Upsample(scale_factor=2)
+        self.up_sample = nn.Upsample(scale_factor=2)
 
     def forward(self, x):
         x_model = self.vgg(x)
@@ -137,8 +142,8 @@ class Colorization(nn.Module):
         global_features_class = self.fully_connected_2(global_features_class)
 
         # Mid-level Features
-        mid_level_features = self.midlevel_features_1(x_model)
-        mid_level_features = self.midlevel_features_2(mid_level_features)
+        mid_level_features = self.mid_level_features_1(x_model)
+        mid_level_features = self.mid_level_features_2(mid_level_features)
 
         # fusion of (VGG16 + Mid-level) + (VGG16 + Global)
         fusion = torch.cat((mid_level_features, global_features2), dim=1)
@@ -146,15 +151,15 @@ class Colorization(nn.Module):
         # Output
         output = self.output_1(fusion)
         output = self.output_2(output)
-        output = self.upsample(output)
+        output = self.up_sample(output)
 
         output = self.output_3(output)
         output = self.output_4(output)
-        output = self.upsample(output)
+        output = self.up_sample(output)
 
         output = self.output_5(output)
         output = self.output_6(output)
-        output = self.upsample(output)
+        output = self.up_sample(output)
 
         return output, global_features_class
 

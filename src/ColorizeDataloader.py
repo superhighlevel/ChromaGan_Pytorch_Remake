@@ -9,14 +9,26 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 
 
-class ColorizeDataLoader(Dataset):              
+def transform(img):
     """
-        Data loader for the Colorization model
-        :param color_path: path to the color images
-        :param img_size: size of the image
-        :param batch_size: batch size
-        :param shuffle: whether to shuffle the data
-        :param num_workers: number of workers
+    Transform function for the image. It converts the image to tensor
+    :param img: image
+    :return: tensor image
+    """
+    trans = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+    return trans(img)
+
+
+class ColorizeDataLoader(Dataset):
+    """
+    Data loader for the Colorization model
+    :param color_path: path to the color images
+    :param img_size: size of the image
+    :param batch_size: batch size
+    :param shuffle: whether to shuffle the data
+    :param num_workers: number of workers
     """
     def __init__(self, color_path, img_size=224):
         # Raise error if the path is not a directory
@@ -50,9 +62,9 @@ class ColorizeDataLoader(Dataset):
 
     def read_img(self, idx):
         """
-            Read and covert the image to the required size
-            :param idx: index of the image
-            :return: grey image, ab image, original image, lab image
+        Read and covert the image to the required size
+        :param idx: index of the image
+        :return grey image, ab image, original image, lab image
         """
         # Read the image
         img_color_path = self.data_color[idx]
@@ -70,27 +82,32 @@ class ColorizeDataLoader(Dataset):
             img_color, 
             lab_img_ori)
 
-    def transfrom(self, img):
-        """
-            Transform function for the image. It converts the image to tensor
-            :param img: image
-            :return: tensor image
-        """
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-        ])
-        return transform(img)
-
     def __getitem__(self, idx):
         # Read the image
         grey_img, color_img, original, lab_img_ori = self.read_img(idx)
         # Transform the image to tensor
-        grey_img = self.transfrom(grey_img)
-        color_img = self.transfrom(color_img)
+        grey_img = transform(grey_img)
+        color_img = transform(color_img)
         # original and lab_img_ori are not transformed since they are not used in the model
         return grey_img, color_img, original, lab_img_ori
 
 
+def testing_colorize_dataloader():
+    """
+    Testing the dataloader
+    """
+    # Create the dataloader
+    color_loader = ColorizeDataLoader(config.TRAIN_PATH)
+    # Get the first image
+    grey_img, color_img, original, lab_img_ori = color_loader[0]
+    # Show the image
+    print('grey_img: ', grey_img.shape)
+    print('color_img: ', color_img.shape)
+    print('original: ', original.shape)
+    print('lab_img_ori: ', lab_img_ori.shape)
+    cv2.waitKey(0)
 
 
+if __name__ == '__main__':
+    testing_colorize_dataloader()
         

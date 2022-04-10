@@ -1,7 +1,7 @@
-from .trainer import Tester
+from trainer import Tester
 
 
-class TestCase():
+class TestCase:
     def __init__(self):
         self.tester = Tester()
 
