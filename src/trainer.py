@@ -1,5 +1,6 @@
 import json
 import os
+import pandas as pd
 
 import configs.config as config
 import cv2
@@ -52,13 +53,13 @@ def model(train_data, test_data, epochs, version=0.0):
 
     optimizer_g = Adam(
         list(colorization_model.parameters()),
-        lr=config.LR,
+        lr=config.GLR,
         betas=(0.5, 0.999),
     )
 
     optimizer_d = Adam(
-        list(discriminator.parameters()), lr=config.LR,
-        betas=(0.9, 0.999))
+        list(discriminator.parameters()), lr=config.DLR,
+        betas=(0.5, 0.999))
 
     color_scaler = torch.cuda.amp.GradScaler()
     disc_scaler = torch.cuda.amp.GradScaler()
@@ -78,32 +79,36 @@ def model(train_data, test_data, epochs, version=0.0):
 
             # Train the Generator
             l_3 = l_3.to(config.DEVICE)
-            with torch.no_grad():
-                predict_vgg = vgg_model_f(l_3)
-                colored, _ = colorization_model(l_3)
-            predAB, pred_class = colorization_model(l_3)
-            predAB = predAB.to(config.DEVICE)
-            trainAB = trainAB.to(config.DEVICE)
-            trainL = trainL.to(config.DEVICE)
-            pred_lab = torch.cat([trainL, predAB], dim=1).to(config.DEVICE)
-            with torch.no_grad():
-                disc_pred = discriminator(pred_lab)
+            for i in range(2):
+            	with torch.no_grad():
+                	predict_vgg = vgg_model_f(l_3)
+                	colored, _ = colorization_model(l_3)
+            	predAB, pred_class = colorization_model(l_3)
+            	predAB = predAB.to(config.DEVICE)
+            	trainAB = trainAB.to(config.DEVICE)
+            	trainL = trainL.to(config.DEVICE)
+            	pred_lab = torch.cat([trainL, predAB], dim=1).to(config.DEVICE)
+            	with torch.no_grad():
+                	disc_pred = discriminator(pred_lab)
 
-            pred_class = pred_class.to(config.DEVICE)
-            predict_vgg = predict_vgg.to(config.DEVICE)
+            	pred_class = pred_class.to(config.DEVICE)
+            	predict_vgg = predict_vgg.to(config.DEVICE)
 
-            # Loss generator
-            mse_loss_gen = torch.nn.functional.mse_loss(predAB, trainAB)
-            kld_loss_gen = torch.nn.functional.kl_div(pred_class, predict_vgg) * 0.003
-            mal_gen = disc_pred * positive_real
-            mal_gen = torch.autograd.Variable(mal_gen, requires_grad=True)
-            wl_loss_gen = wasserstein_loss(mal_gen) * -0.1
-            loss_gen = (mse_loss_gen + kld_loss_gen + wl_loss_gen)
+            	# Loss generator
+            	#mse_loss_gen = torch.nn.functional.mse_loss(predAB, trainAB)
+            	#kld_loss_gen = torch.nn.functional.kl_div(pred_class, predict_vgg) * 0.003
+            	mse_loss_gen = torch.nn.MSELoss()(predAB.float(),trainAB.float())
+            	kld_loss_gen = torch.nn.KLDivLoss(size_average='Flase')(pred_class.log().float(),predict_vgg.detach().float())*0.003
+            	mal_gen = disc_pred * positive_real
+            	mal_gen = torch.autograd.Variable(mal_gen, requires_grad=True)
+            	wl_loss_gen = wasserstein_loss(disc_pred) * 0.1
+            	#wl_loss_gen = wasserstein_loss(mal_gen) * 0.1
+            	loss_gen = (mse_loss_gen + kld_loss_gen + wl_loss_gen)
 
-            # Backpropagation
-            optimizer_g.zero_grad()
-            loss_gen.backward(retain_graph=True)
-            optimizer_g.step()
+            	# Backpropagation
+            	optimizer_g.zero_grad()
+            	loss_gen.backward(retain_graph=True)
+            	optimizer_g.step()
 
             # append losses
             losses['mse_loss_gen'].append(mse_loss_gen.item())
@@ -115,34 +120,35 @@ def model(train_data, test_data, epochs, version=0.0):
 
             # disc prediction
             pred_true = torch.cat([trainL, trainAB], dim=1).to(config.DEVICE)
+            for i in range(1):
+            
+            	with torch.no_grad():
+                	disc_pred = discriminator(pred_lab)
+                	disc_true = discriminator(pred_true)
+            	# Loss Discriminator
+            	averaged_sample = random_weighted_average([trainAB, predAB])
+            	average_sample = torch.cat([trainL, averaged_sample], dim=1)
+            	average_sample = average_sample.to(config.DEVICE)
+            	average_sample = torch.autograd.Variable(average_sample, requires_grad=True)
+            	disc_average = discriminator(average_sample)
 
-            with torch.no_grad():
-                disc_pred = discriminator(pred_lab)
-                disc_true = discriminator(pred_true)
-            # Loss Discriminator
-            averaged_sample = random_weighted_average([trainAB, predAB])
-            average_sample = torch.cat([trainL, averaged_sample], dim=1)
-            average_sample = average_sample.to(config.DEVICE)
-            average_sample = torch.autograd.Variable(average_sample, requires_grad=True)
-            disc_average = discriminator(average_sample)
+            	mal_F = disc_pred * negative_real
+            	mal_F = torch.autograd.Variable(mal_F, requires_grad=True)
+            	mal_R = disc_true * positive_real
+            	mal_R = torch.autograd.Variable(mal_R, requires_grad=True)
 
-            mal_F = disc_pred * negative_real
-            mal_F = torch.autograd.Variable(mal_F, requires_grad=True)
-            mal_R = disc_true * positive_real
-            mal_R = torch.autograd.Variable(mal_R, requires_grad=True)
+            	Loss_D_Fake = wasserstein_loss(disc_pred) * -1.0
+            	Loss_D_Real = wasserstein_loss(disc_true)
+            	Loss_D_avg = gradient_penalty_loss(
+                	disc_average,
+                	average_sample,
+                	config.GRADIENT_PENALTY_WEIGHT)
+            	Loss_D = (Loss_D_Fake + Loss_D_Real + Loss_D_avg)
 
-            Loss_D_Fake = wasserstein_loss(mal_F) * -1.0
-            Loss_D_Real = wasserstein_loss(mal_R)
-            Loss_D_avg = gradient_penalty_loss(
-                disc_average,
-                average_sample,
-                config.GRADIENT_PENALTY_WEIGHT)
-            Loss_D = (Loss_D_Fake + Loss_D_Real + Loss_D_avg)
-
-            # Backpropagation
-            optimizer_d.zero_grad()
-            Loss_D.backward(retain_graph=True)
-            optimizer_d.step()
+            	# Backpropagation
+            	optimizer_d.zero_grad()
+            	Loss_D.backward(retain_graph=True)
+            	optimizer_d.step()
 
             # append losses
             losses['Loss_D_Fake'].append(Loss_D_Fake.item())
@@ -151,7 +157,7 @@ def model(train_data, test_data, epochs, version=0.0):
             losses['Loss_D'].append(Loss_D.item())
 
             # Save losses and images
-            if idx % 300 == 0:
+            if idx % 10 == 0:
                 # sample_images(test_dataloader, colorization_model, epoch)
                 print(f'{idx} / {len(train_dataloader)}')
                 print(f'Loss_D_Fake: {Loss_D_Fake.item()}')
@@ -164,19 +170,39 @@ def model(train_data, test_data, epochs, version=0.0):
                 print(f'Loss_wl_gen: {wl_loss_gen.item()}')
                 print('-' * 30)
             # sample images after each epoch
-            if epoch % 10 == 0 and epoch != 0:
-                colorization_model.eval()
-                sample_images(test_dataloader, colorization_model)
-                colorization_model.train()
-                with open(os.path.join(save_models_path, 'losses_' + str(epoch) + '.json'), 'w') as f:
-                    json.dump(losses, f)
-                torch.save(discriminator.state_dict(), config.MODEL_PATH + 'discriminator_' + str(epoch) + '.pt')
-                torch.save(colorization_model.state_dict(), config.MODEL_PATH + 'colorization_' + str(epoch) + '.pt')
+            #if epoch % 10 == 0 and epoch != 0:
+                #colorization_model.eval()
+                #sample_images(test_dataloader, colorization_model)
+                #colorization_model.train()
+                #with open(os.path.join(save_models_path, 'losses_' + str(epoch) + '.json'), 'w') as f:
+                    #json.dump(losses, f)
+                #torch.save(discriminator.state_dict(), config.MODEL_PATH + 'discriminator_' + str(epoch) + '.pt')
+                #torch.save(colorization_model.state_dict(), config.MODEL_PATH + 'colorization_' + str(epoch) + '.pt')
     # Save losses
-    with open(os.path.join(save_models_path, 'losses.json'), 'w') as f:
-        json.dump(losses, f)
+    #with open(os.path.join(save_models_path, 'losses.json'), 'w') as f:
+        #json.dump(losses, f)
     torch.save(discriminator.state_dict(), config.MODEL_PATH + 'discriminator.pt')
     torch.save(colorization_model.state_dict(), config.MODEL_PATH + 'colorization.pt')
+    gloss = []
+    dloss = []
+    dloss_fake = []
+    dloss_real = []
+    dloss_avg = []
+    gloss_mse = []
+    gloss_kld = []
+    gloss_wl = []
+    for k,v in losses.items():
+    	gloss = losses['loss_gen']
+    	dloss = losses['Loss_D']
+    	dloss_fake = losses['Loss_D_Fake']
+    	dloss_real = losses['Loss_D_Real']
+    	dloss_avg = losses['Loss_D_avg']
+    	gloss_mse = losses['mse_loss_gen']
+    	gloss_kld = losses['kld_loss_gen']
+    	gloss_wl = losses['wl_loss_gen']
+    dfData = {'GLOSS':gloss,'DLOSS':dloss,'GLOSS_MSE':gloss_mse,'GLOSS_KLD':gloss_kld,'GLOSS_WL':gloss_wl,'DLOSS_AVG':dloss_avg,'DLOSS_FAKE':dloss_fake,'DLOSS_REAL':dloss_real}
+    df = pd.DataFrame(dfData)
+    df.to_excel('loss.xlsx',index=False)
 
 
 def train():
@@ -220,7 +246,7 @@ def sample_images(test_data, colorizationModel):
         colored = colored.detach().cpu().numpy()
         for i in range(config.BATCH_SIZE):
             original_result_red = reconstruct(deprocess(gray)[i], deprocess(colored)[i])
-            print('originalResult_red shape: ', original_result_red.shape)
+            #print('originalResult_red shape: ', original_result_red.shape)
             cv2.imwrite(config.OUTPUT_PATH + str(idx) + '_' + str(i) + '.png', original_result_red)
     print('Sampling images done')
 

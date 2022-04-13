@@ -34,6 +34,8 @@ class ColorizeDataLoader(Dataset):
         self.color_channels = 3
         self.gray_channels = 1
         self.data_color = []
+        self.filelist = os.listdir(self.color_path)[:None]
+        self.size = len(self.filelist)
 
         # Add '/' to the end of the path if it doesn't exist
         if self.color_path[-1] != '/':
@@ -91,9 +93,25 @@ class ColorizeDataLoader(Dataset):
         # Return the grey image, ab image, original image, original lab image
         return (
             np.reshape(lab_img[:, :, 0], (self.img_size, self.img_size, 1)),
-            lab_img[:, :, 1:],
+            #lab_img[:, :, 1:],
+            #np.reshape(lab_img[:, :, 0], (1,self.img_size, self.img_size)),
+            np.reshape(lab_img[:, :, 1:],(self.img_size, self.img_size,2)),
             img_color, 
             lab_img_ori)
+    def generate_batch(self):
+        batch = []
+        labels = []
+        filelist = []
+        for i in range(config.batch_size):
+            filename = os.path.join(self.color_path, self.filelist[self.data_index])
+            filelist.append(self.filelist[self.data_index])
+            greyimg, colorimg = self.read_img(filename)
+            batch.append(greyimg)
+            labels.append(colorimg)
+            self.data_index = (self.data_index + 1) % self.size
+        batch = np.asarray(batch)/255 # values between 0 and 1
+        labels = np.asarray(labels)/255 # values between 0 and 1
+        return batch, labels, filelist
 
 
 def testing_colorize_dataloader():
@@ -108,7 +126,7 @@ def testing_colorize_dataloader():
     print('grey_img: ', grey_img.shape)
     print('color_img: ', color_img.shape)
     print('original: ', original.shape)
-    print('lab_img_ori: ', lab_img_ori.shape)
+    print('lab_img: ', lab_img_ori.shape)
     cv2.waitKey(0)
 
 def checking_data_loader():
@@ -126,6 +144,6 @@ def checking_data_loader():
     print('Everything is fine')
 
 if __name__ == '__main__':
-    # testing_colorize_dataloader()
-    checking_data_loader()
+    #checking_data_loader()
+    testing_colorize_dataloader()
         
