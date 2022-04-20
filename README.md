@@ -1,6 +1,6 @@
 # ChromaGan Pytorch Remake
 ## The Pytorch implementation of ChromaGAN
-WIP - The code is not finished yet.
+WIP - The core is trainable, but the project it self need some modification
 ### How to run
 - Create new virtual environment
   ```
