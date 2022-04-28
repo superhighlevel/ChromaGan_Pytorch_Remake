@@ -54,16 +54,13 @@ class ColorizeDataLoader(Dataset):
         return len(self.data_color)
     
     def __getitem__(self, idx):
-        # Read the image
-        grey_img, color_img, original, lab_img_ori = self.read_img(idx)
-        # Transform the image to tensor
+        # Read the image``
+        grey_img, color_img, original_images_shape = self.read_img(idx)
+
         grey_img = self.transform(grey_img)
         color_img = self.transform(color_img)
-        # print(grey_img.shape)
-        # print(color_img.shape)
-        # original and lab_img_ori are not transformed since they are not used in the model
-        return grey_img, color_img, original, lab_img_ori
-    
+        # Return the resized image and the original shape
+        return grey_img, color_img, original_images_shape
     def transform(self, img):
         """
         Transform function for the image. It converts the image to tensor
@@ -88,30 +85,14 @@ class ColorizeDataLoader(Dataset):
         lab_img = cv2.cvtColor(
             cv2.resize(img_color, (self.img_size, self.img_size)),
             cv2.COLOR_BGR2Lab)
-        lab_img_ori = cv2.cvtColor(img_color, cv2.COLOR_BGR2Lab)
-
-        # Return the grey image, ab image, original image, original lab image
+        # Get original images shape 
+        original_shape = img_color.shape
+        # print(original_shape)
         return (
             np.reshape(lab_img[:, :, 0], (self.img_size, self.img_size, 1)),
-            #lab_img[:, :, 1:],
-            #np.reshape(lab_img[:, :, 0], (1,self.img_size, self.img_size)),
             np.reshape(lab_img[:, :, 1:],(self.img_size, self.img_size,2)),
-            img_color, 
-            lab_img_ori)
-    def generate_batch(self):
-        batch = []
-        labels = []
-        filelist = []
-        for i in range(config.batch_size):
-            filename = os.path.join(self.color_path, self.filelist[self.data_index])
-            filelist.append(self.filelist[self.data_index])
-            greyimg, colorimg = self.read_img(filename)
-            batch.append(greyimg)
-            labels.append(colorimg)
-            self.data_index = (self.data_index + 1) % self.size
-        batch = np.asarray(batch)/255 # values between 0 and 1
-        labels = np.asarray(labels)/255 # values between 0 and 1
-        return batch, labels, filelist
+            original_shape,
+            )
 
 
 def testing_colorize_dataloader():
@@ -121,13 +102,11 @@ def testing_colorize_dataloader():
     # Create the dataloader
     color_loader = ColorizeDataLoader(config.TRAIN_PATH)
     # Get the first image
-    grey_img, color_img, original, lab_img_ori = color_loader[0]
+    grey_img, color_img, original_images_shape = color_loader[0]
     # Show the image
     print('grey_img: ', grey_img.shape)
     print('color_img: ', color_img.shape)
-    print('original: ', original.shape)
-    print('lab_img: ', lab_img_ori.shape)
-    cv2.waitKey(0)
+    print('original_images_shape: ', original_images_shape)
 
 def checking_data_loader():
     """
@@ -135,13 +114,15 @@ def checking_data_loader():
     """
     # Create the dataloader
     print('Checking the dataloader')
-    color_loader = ColorizeDataLoader(config.TRAIN_PATH)
+    houses = './dataset/houses/color_images'
+    # color_loader = ColorizeDataLoader(config.TRAIN_PATH)
+    color_loader = ColorizeDataLoader(houses)    
     test_dataloader = DataLoader(
         color_loader, batch_size=config.BATCH_SIZE,
         shuffle=True, num_workers=2, drop_last=True)
-    for idx, (grey_img, color_img, original, lab_img_ori) in enumerate(tqdm(test_dataloader)):
+    for idx, (grey_img, color_img, _) in enumerate(tqdm(test_dataloader)):
         continue
-    print('Everything is fine')
+    print('Everything is fine! Maybe :/ ?')
 
 if __name__ == '__main__':
     #checking_data_loader()

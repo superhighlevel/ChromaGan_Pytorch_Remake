@@ -4,7 +4,7 @@ GRADIENT_PENALTY_WEIGHT = 10
 
 EPOCHS = 1
 
-MODEL_PATH = 'models/'
+MODEL_PATH = 'models/colorization.pt'
 MODEL_NAME = 'ChromaGAN'
 MODEL_DIR = 'models/'
 
@@ -12,9 +12,11 @@ OUTPUT_PATH = 'Output/'
 
 # TRAIN_PATH = '../input/celeb-dataset/celeb_dataset/train/color'
 TRAIN_PATH = 'datasets/celeb_dataset/test/color/color_images'
-TEST_PATH = 'datasets/celeb_dataset/test/color/color_images'
+# TEST_PATH = 'datasets/celeb_dataset/test/color/color_images'
+TEST_PATH = 'datasets/Intercal/'
 
-BATCH_SIZE = 1
+
+BATCH_SIZE = 16
 # TEST_BATCH_SIZE = 16
 
 LR = 0.0002

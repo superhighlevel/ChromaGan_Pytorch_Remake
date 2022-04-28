@@ -128,9 +128,11 @@ dmypy.json
 datasets/
 models/
 testing/
+Output/
 
 # ignore all images
 *.png
 *.jpg
 *.jpeg
 *.gif
+*.zip

@@ -199,7 +199,7 @@ def test_coloization_dataloader():
         test_dataloader, batch_size=config.BATCH_SIZE,
         shuffle=True, num_workers=4)
     print('sampling images')
-    for idx, (gray, real, real_2, _) in enumerate(tqdm(test_dataloader)):
+    for idx, (gray, real, _) in enumerate(tqdm(test_dataloader)):
         l_3 = np.tile(gray, [1, 3, 1, 1])
         l_3 = torch.from_numpy(l_3).to(config.DEVICE)
         colorization = Colorization(input_size=224).to('cuda')
