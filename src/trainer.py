@@ -90,14 +90,11 @@ def model(train_data, test_data, epochs, version=0.0):
             predict_vgg = predict_vgg.to(config.DEVICE)
 
             # Loss generator
-            #mse_loss_gen = torch.nn.functional.mse_loss(predAB, trainAB)
-            #kld_loss_gen = torch.nn.functional.kl_div(pred_class, predict_vgg) * 0.003
             mse_loss_gen = torch.nn.MSELoss()(predAB.float(),trainAB.float())
             kld_loss_gen = torch.nn.KLDivLoss(size_average='Flase')(pred_class.log().float(),predict_vgg.detach().float())*0.003
             mal_gen = disc_pred * positive_real
             mal_gen = torch.autograd.Variable(mal_gen, requires_grad=True)
             wl_loss_gen = wasserstein_loss(disc_pred) * 0.1
-            #wl_loss_gen = wasserstein_loss(mal_gen) * 0.1
             loss_gen = (mse_loss_gen + kld_loss_gen + wl_loss_gen)
 
             # Backpropagation
@@ -238,7 +235,7 @@ def test():
     test_dataloader = ColorizeDataLoader(config.TEST_PATH)
     test_dataloader = DataLoader(
         test_dataloader, batch_size=config.BATCH_SIZE,
-        shuffle=True, num_workers=2)
+        shuffle=True, num_workers=2, drop_last=True)
     colorizationModel = Colorization(input_size=224).to(config.DEVICE)
     colorizationModel.load_state_dict(torch.load(path))
     colorizationModel.eval()

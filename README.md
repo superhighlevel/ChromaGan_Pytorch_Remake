@@ -12,7 +12,7 @@ WIP - The core is trainable, but the project it self need some modification
   ```
 - Run the code
   ```
-    python main.py --config configs/config.yaml --mode 2
+    python main.py --mode 2
   ```
   - --config: path to the config file
   - --mode: 

@@ -114,6 +114,7 @@ def checking_data_loader():
     """
     # Create the dataloader
     print('Checking the dataloader')
+    # Please check your dataset
     houses = './dataset/houses/color_images'
     # color_loader = ColorizeDataLoader(config.TRAIN_PATH)
     color_loader = ColorizeDataLoader(houses)    

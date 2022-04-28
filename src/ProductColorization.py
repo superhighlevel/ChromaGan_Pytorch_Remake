@@ -25,7 +25,6 @@ def colorize(model, images_path):
     print('sampling images')
     for idx, (gray, _, original_image_size) in enumerate(tqdm(test_dataloader)):
         l_3 = torch.cat([gray, gray, gray], dim=1).to(config.DEVICE)
-        # l_3 = torch.from_numpy(l_3).to(config.DEVICE)
         colored, _ = model(l_3)
 
         gray = gray.detach().cpu().numpy()
@@ -33,17 +32,13 @@ def colorize(model, images_path):
 
         if not os.path.exists(config.OUTPUT_PATH):
             os.makedirs(config.OUTPUT_PATH)
-        # convert original_image_size to numpy array
-        # print('original_image_size', int(original_image_size[0][0]), original_image_size[1][0])
-        # print(original_image_size.numpy())
+            
         for i in range(4):
             original_result = reconstruct(deprocess(gray)[i], deprocess(colored)[i])
             original_result = cv2.resize(
                 original_result, 
                 (int(original_image_size[1][i]), int(original_image_size[0][i])),
                 interpolation = cv2.INTER_LANCZOS4)
-            # original_result = cv2.resize(original_result, (original_image_size[i][0], original_image_size[i][1]))
-            #print('originalResult_red shape: ', original_result_red.shape)
             cv2.imwrite(config.OUTPUT_PATH + str(idx) + '_' + str(i) + '.png', original_result)
 
 def main():
