@@ -9,14 +9,14 @@ def main():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--mode', type=int, default=1, help='1: train, 2: test')
-    parser.add_argument('-c', '--config', type=str, default='configs/config.yaml', help='config file')
+    parser.add_argument('-c', '--config', type=str, default='configs/config.yaml', help='config file') # this is bug
     args = parser.parse_args()
 
     if args.mode == 1:
         Train().train()
 
     elif args.mode == 2:
-        TestCase().test()
+        TestCase().do_test()
     else:
         print('Invalid mode')
 

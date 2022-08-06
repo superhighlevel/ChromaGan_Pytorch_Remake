@@ -5,6 +5,6 @@ class TestCase:
     def __init__(self):
         self.tester = Tester()
 
-    def test(self):
+    def do_test(self):
         self.tester.test()
         print('Testing done!')
