@@ -42,19 +42,18 @@ def model(train_data, test_data, epochs, version=0.0):
     discriminator.apply(initialize_weights)
     colorization_model = Colorization(input_size=224).to(config.DEVICE)
     vgg_model_f = models.vgg16(pretrained=True).to(config.DEVICE)
+    vgg_model_f.requires_grad_(False)
 
-    positive_real = torch.ones(size=(config.BATCH_SIZE, 1, 28, 28), requires_grad=True).to(config.DEVICE)
-    negative_real = (-positive_real).to(config.DEVICE)
+    # positive_real = torch.ones(size=(config.BATCH_SIZE, 1, 28, 28), requires_grad=True).to(config.DEVICE)
+    # negative_real = (-positive_real).to(config.DEVICE)
 
     optimizer_g = Adam(
-        list(colorization_model.parameters()),
-        lr=config.LR,
-        betas=(0.5, 0.999),
+        colorization_model.parameters(), lr=config.LR, betas=(0.5, 0.999)
     )
 
     optimizer_d = Adam(
-        list(discriminator.parameters()), lr=config.LR,
-        betas=(0.5, 0.999))
+        discriminator.parameters(), lr=config.LR, betas=(0.5, 0.999)
+    )
 
     # init loss function
     KKLDivergence = nn.KLDivLoss()
@@ -76,9 +75,11 @@ def model(train_data, test_data, epochs, version=0.0):
             pred_LAB_C = torch.cat([trainL, pred_AB], dim=1)
             with torch.no_grad():
                 dis_C = discriminator(pred_LAB_C)
-            dis_C = dis_C.mean()
-            KLD_loss = KKLDivergence(pred_class_c, pred_class_vgg.detach().float()) * 0.003
-            MSE_loss = MSE(pred_AB, trainAB) * 10
+            KLD_loss = KKLDivergence(
+                F.softmax(pred_class_c).detach().float(), 
+                pred_class_vgg.detach().float()
+                ) * 0.003
+            MSE_loss = MSE(pred_AB.float(), trainAB.float())
             W_loss = wasserstein_loss(dis_C, True) * 0.1
             g_loss = KLD_loss + MSE_loss + W_loss
 

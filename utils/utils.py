@@ -66,7 +66,7 @@ def gradient_penalty_loss(y_pred, averaged_samples, gradient_penalty_weight):
                                     grad_outputs=torch.ones(y_pred.size(), device=config.DEVICE),
                                     create_graph=True, retain_graph=True, only_inputs=True)[0]
     gradients = gradients.view(gradients.size(0), -1)
-    gradient_penalty = (((gradients + 1e-16).norm(2, dim=1) - 1) ** 2).mean() * gradient_penalty_weight
+    gradient_penalty = torch.mean(((gradients + 1e-16).norm(2, dim=1) - 1) ** 2) * gradient_penalty_weight
     return gradient_penalty
 
 

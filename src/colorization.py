@@ -34,8 +34,8 @@ class ConvBlock(nn.Module):
             nn.Conv2d(
                 in_channels, out_channels, kernel_size,
                 stride, padding, padding_mode='reflect'),
+            nn.ReLU(0.2),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(0.2)
         )
 
     def forward(self, x):
